@@ -1,0 +1,13 @@
+library/
+Objects/
+Listings/
+DebugConfig/
+start/
+
+*.86157
+*.uvoptx
+*.uvprojx
+
+*.log
+.vscode/
+
