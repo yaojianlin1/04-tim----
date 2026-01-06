@@ -15,9 +15,15 @@ extern volatile uint8_t rx_complete_flag;
 extern volatile uint8_t *ptr;
 extern volatile uint16_t last_length;
 
+extern volatile char distance[12];
+
 void Serial_Init(void);
 void DMAUSART_Init(void);
 void Serial_send(uint8_t Byte);
 void Serial_SendString(char *s);
+
+
+
+
 #endif
 

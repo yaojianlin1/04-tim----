@@ -1,16 +1,16 @@
 #include "stm32f10x.h"
 #include <stdio.h>
 #include "USART.h"
-
-
+#include "delay.h"
+#include <string.h>
 /**
  * PA9   TX
  * PA10  RX
- * USART1 --- USBtoTTL
+ * USART1 --- tof
  * 
  * PA2   TX
  * PA3   RX
- * USART2
+ * USART2 --- USB to TTL
  */
 
 uint8_t rx_buffer1[BUFFER_SIZE];
@@ -23,7 +23,7 @@ volatile uint8_t *ptr = rx_buffer1;
 
 volatile uint8_t rx_complete_flag = 0;
 
-
+volatile char distance[12];
 
 
 void Serial_Init(void){
@@ -33,13 +33,20 @@ void Serial_Init(void){
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
 
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOA,&GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_Init(GPIOA,&GPIO_InitStructure);
+
+
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+    GPIO_Init(GPIOA,&GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
     GPIO_Init(GPIOA,&GPIO_InitStructure);
 
     USART_InitStructure.USART_BaudRate = USART_BAUDRATE;
@@ -49,6 +56,9 @@ void Serial_Init(void){
     USART_InitStructure.USART_StopBits = USART_StopBits_1;
     USART_InitStructure.USART_WordLength = USART_WordLength_8b;
     USART_Init(USART1,&USART_InitStructure);
+    USART_Init(USART2,&USART_InitStructure);
+
+
 
     NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -62,6 +72,7 @@ void Serial_Init(void){
 
 
     USART_Cmd(USART1,ENABLE);
+    USART_Cmd(USART2,ENABLE);
     USART_ClearFlag(USART1,USART_FLAG_TC);
 
 }
@@ -101,8 +112,8 @@ void DMAUSART_Init(void){
 
 void Serial_send(uint8_t Byte){
 
-    while(USART_GetFlagStatus(USART1,USART_FLAG_TXE) == RESET);
-    USART_SendData(USART1,Byte);
+    while(USART_GetFlagStatus(USART2,USART_FLAG_TXE) == RESET);
+    USART_SendData(USART2,Byte);
     
 }
 
@@ -115,6 +126,7 @@ void Serial_SendString(char *s){
 
 
 void USART1_IRQHandler(void){
+    
     if(USART_GetITStatus(USART1,USART_IT_IDLE) == SET){
         
         USART_ReceiveData(USART1);
@@ -123,8 +135,11 @@ void USART1_IRQHandler(void){
         rx_data_length = BUFFER_SIZE - DMA_GetCurrDataCounter(DMA1_Channel5)-last_length;   
         rx_complete_flag = 1;
         
-
         DMA_Cmd(DMA1_Channel5,ENABLE);
+        
 
     }
 }
+
+
+
