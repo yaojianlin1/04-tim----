@@ -18,6 +18,9 @@ uint8_t rx_buffer2[BUFFER_SIZE];
 
 volatile uint8_t *current_rx_buffer = rx_buffer1;
 volatile uint16_t rx_data_length = 0;
+volatile uint16_t last_length = 0;
+volatile uint8_t *ptr = rx_buffer1;
+
 volatile uint8_t rx_complete_flag = 0;
 
 
@@ -117,10 +120,11 @@ void USART1_IRQHandler(void){
         USART_ReceiveData(USART1);
         DMA_Cmd(DMA1_Channel5,DISABLE);
 
-        rx_data_length = BUFFER_SIZE - DMA_GetCurrDataCounter(DMA1_Channel5);   
+        rx_data_length = BUFFER_SIZE - DMA_GetCurrDataCounter(DMA1_Channel5)-last_length;   
         rx_complete_flag = 1;
-        DMA_Cmd(DMA1_Channel5,ENABLE);
+        
 
+        DMA_Cmd(DMA1_Channel5,ENABLE);
 
     }
 }

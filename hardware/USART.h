@@ -12,7 +12,8 @@ extern uint8_t rx_buffer2[BUFFER_SIZE];
 extern volatile uint8_t *current_rx_buffer;
 extern volatile uint16_t rx_data_length;
 extern volatile uint8_t rx_complete_flag;
-
+extern volatile uint8_t *ptr;
+extern volatile uint16_t last_length;
 
 void Serial_Init(void);
 void DMAUSART_Init(void);
