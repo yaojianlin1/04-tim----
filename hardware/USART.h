@@ -3,7 +3,7 @@
 
 #define USART_BAUDRATE 115200
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 20
 
 extern uint8_t rx_buffer1[BUFFER_SIZE];
 extern uint8_t rx_buffer2[BUFFER_SIZE];

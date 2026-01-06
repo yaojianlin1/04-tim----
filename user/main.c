@@ -36,13 +36,14 @@ int main(void){
             __disable_irq();
             rx_complete_flag = 0;
             last_length = (rx_data_length + last_length)%BUFFER_SIZE;
-            GetDistance();
-            OLED_ShowNum(3,1,rx_data_length,10);
+            ALL_Array();
+            // GetDistance();
+            // OLED_ShowNum(3,1,rx_data_length,10);
             // sprintf(sss,"sss:%s",s);
-            sprintf(tmp,"dis:%s",distance);
+            // sprintf(tmp,"dis:%s",distance);
             // Serial_SendString(sss);
-            Serial_SendString(distance);
-            OLED_ShowString(4,1,tmp);
+            // Serial_SendString(distance);
+            // OLED_ShowString(4,1,tmp);
             __enable_irq();
 
         // Delay_s(3);
@@ -59,8 +60,10 @@ void Init(void){
 
 void ALL_Array(void){
     int i = 0;
+    
     for(i=0;i<BUFFER_SIZE;i++ ){
-        Serial_send(rx_buffer1[i]);
+        sprintf(sss,"rx_buffer[%d]:%d\n",i,rx_buffer1[i]);
+        Serial_SendString(sss);
     }
 }
 /**
