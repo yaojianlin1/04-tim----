@@ -29,7 +29,7 @@ void Serial_Init(void){
 
     tx_buffer[0] = 'd';
     tx_buffer[1] = ':';
-    tx_buffer[6] = '\n';
+
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
@@ -119,7 +119,7 @@ void Serial_SendString(char *s){
 }
 
 
-void USART2_send_DMA(){
+static void USART2_send_DMA(){
     uint8_t i = 0;
     DMA_Cmd(DMA1_Channel7,DISABLE);
     DMA_ClearFlag(DMA1_FLAG_TC7 | DMA1_FLAG_GL7 | DMA1_FLAG_HT7 | DMA1_FLAG_TE7);
@@ -131,10 +131,8 @@ void USART2_send_DMA(){
     for(i = 0;i<write_rx_buffer;i++){
         tx_buffer[i+2] = rx_buffer[i];
     }
-    for(i = write_rx_buffer+1;i<BUFFER_SIZE+3;i++){
-        tx_buffer[i+2] = '\0';
-    }
     tx_buffer[write_rx_buffer+2] = '\n';
+    tx_buffer[write_rx_buffer+3] = '\0';
     USART_DMACmd(USART2,USART_DMAReq_Tx,ENABLE);
     DMA_Cmd(DMA1_Channel7,ENABLE);
 }
