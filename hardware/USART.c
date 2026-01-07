@@ -13,23 +13,24 @@
  * USART2 --- USB to TTL
  */
 
-uint8_t rx_buffer1[BUFFER_SIZE];
-uint8_t rx_buffer2[BUFFER_SIZE];
+uint8_t rx_buffer1[BUFFER_SIZE+2];
 
-volatile uint8_t *current_rx_buffer = rx_buffer1;
-volatile uint16_t rx_data_length = 0;
-volatile uint16_t last_length = 0;
-volatile uint8_t *ptr = rx_buffer1;
 
+
+
+volatile uint16_t write_rx_buffer = 2;
 volatile uint8_t rx_complete_flag = 0;
 
-volatile char distance[12];
 
 
 void Serial_Init(void){
     GPIO_InitTypeDef GPIO_InitStructure;
     USART_InitTypeDef USART_InitStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
+
+    rx_buffer1[0] = 'd';
+    rx_buffer1[1] = ':';
+    
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
@@ -66,13 +67,15 @@ void Serial_Init(void){
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
     NVIC_Init(&NVIC_InitStructure);
 
-
+    //开启RXNE中断和IDLE中断，每来一个字节就在中断程序中将他转移到rx_buffer中，IDLE中断就置标志位为1
+    USART_ITConfig(USART1,USART_IT_RXNE,ENABLE);
     USART_ITConfig(USART1,USART_IT_IDLE,ENABLE);
-    USART_DMACmd(USART1,USART_DMAReq_Rx,ENABLE);
+    // USART_DMACmd(USART1,USART_DMAReq_Rx,ENABLE);
 
 
     USART_Cmd(USART1,ENABLE);
     USART_Cmd(USART2,ENABLE);
+    
     USART_ClearFlag(USART1,USART_FLAG_TC);
 
 }
@@ -80,30 +83,26 @@ void Serial_Init(void){
 void DMAUSART_Init(void){
 
     DMA_InitTypeDef DMA_InitStructure;
-    // NVIC_InitTypeDef NVIC_InitStructure;
+    
 
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
-    DMA_DeInit(DMA1_Channel5);
-    DMA_InitStructure.DMA_BufferSize = BUFFER_SIZE;
-    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+    DMA_DeInit(DMA1_Channel7);
+    DMA_InitStructure.DMA_BufferSize = BUFFER_SIZE+2;
+    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;//内存到外设
     DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
     DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)rx_buffer1;
     DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&USART1->DR;
+    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&USART2->DR;
     DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    DMA_Init(DMA1_Channel5,&DMA_InitStructure);
+    DMA_Init(DMA1_Channel7,&DMA_InitStructure);
 
-    DMA_Cmd(DMA1_Channel5,ENABLE);
-
-    // NVIC_InitStructure.NVIC_IRQChannel = ;
-    // NVIC_InitStructure.NVIC_IRQChannelCmd = ;
-    // NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = ;
-    // NVIC_InitStructure.NVIC_IRQChannelSubPriority = ;
-    // NVIC_Init(&NVIC_InitStructure);
+    DMA_Cmd(DMA1_Channel7,DISABLE);
+    
+    
 
 }
 
@@ -125,19 +124,43 @@ void Serial_SendString(char *s){
 }
 
 
-void USART1_IRQHandler(void){
+void USART2_send_DMA(){
+    DMA_Cmd(DMA1_Channel7,DISABLE);
+    DMA_ClearFlag(DMA1_FLAG_TC7 | DMA1_FLAG_GL7 | DMA1_FLAG_HT7 | DMA1_FLAG_TE7);
+    DMA_SetCurrDataCounter(DMA1_Channel7,write_rx_buffer);
+
+
+    USART_DMACmd(USART2,USART_DMAReq_Tx,ENABLE);
+    DMA_Cmd(DMA1_Channel7,ENABLE);
+}
+
+
+void USART2_DMA_disable(){
     
+    USART_DMACmd(USART2,USART_DMAReq_Tx,DISABLE);
+    DMA_Cmd(DMA1_Channel7,DISABLE);
+}
+
+void USART1_IRQHandler(void){
+    uint16_t tmp = 0;
+    if(USART_GetITStatus(USART1,USART_IT_RXNE) == SET){
+        // USART2_DMA_disable();
+        USART_ClearITPendingBit(USART1,USART_IT_RXNE);
+        tmp = USART_ReceiveData(USART1);
+        //如果tmp是数字就接收，否则就丢弃
+        if(tmp >= '0' && tmp <= '9'){
+            rx_buffer1[write_rx_buffer++] = tmp;
+        }
+    }
+
     if(USART_GetITStatus(USART1,USART_IT_IDLE) == SET){
         
         USART_ReceiveData(USART1);
-        DMA_Cmd(DMA1_Channel5,DISABLE);
-
-        rx_data_length = BUFFER_SIZE - DMA_GetCurrDataCounter(DMA1_Channel5)-last_length;   
+        USART_ClearITPendingBit(USART1,USART_IT_IDLE);
         rx_complete_flag = 1;
         
-        DMA_Cmd(DMA1_Channel5,ENABLE);
-        
-
+        USART2_send_DMA();
+        write_rx_buffer = 2;
     }
 }
 

@@ -3,19 +3,17 @@
 
 #define USART_BAUDRATE 115200
 
-#define BUFFER_SIZE 20
+#define BUFFER_SIZE 4
 
-extern uint8_t rx_buffer1[BUFFER_SIZE];
-extern uint8_t rx_buffer2[BUFFER_SIZE];
+extern uint8_t rx_buffer1[BUFFER_SIZE+2];
 
 
-extern volatile uint8_t *current_rx_buffer;
-extern volatile uint16_t rx_data_length;
+
+
 extern volatile uint8_t rx_complete_flag;
-extern volatile uint8_t *ptr;
-extern volatile uint16_t last_length;
 
-extern volatile char distance[12];
+extern volatile uint16_t write_rx_buffer;
+
 
 void Serial_Init(void);
 void DMAUSART_Init(void);
