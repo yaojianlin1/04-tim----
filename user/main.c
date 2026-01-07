@@ -10,26 +10,23 @@
 void Init(void);
 void ALL_Array(void);
 char sss[20];
-
+uint8_t i = 0;
 
 int main(void){
     Delay_ms(1000);
     Init();
-    OLED_Clear();
-
-    
-
     OLED_ShowString(1,1,"distance:");
-    while(1){
-        
+    OLED_ShowString(2,6,"mm");
     
+    while(1){
+        while(rx_complete_flag == 0);
         
-        while(1){
-            
-            Delay_ms(10);
-        }
-        
+        OLED_ShowString(2,1,"    ");
+        OLED_ShowString(2,1,rx_buffer);
+        Delay_ms(200);
     }
+ 
+    
 }
 
 void Init(void){
@@ -44,7 +41,7 @@ void ALL_Array(void){
     int i = 0;
     
     for(i=0;i<BUFFER_SIZE;i++ ){
-        sprintf(sss,"rx_buffer[%d]:%d\n",i,rx_buffer1[i]);
+        sprintf(sss,"rx_buffer[%d]:%d\n",i,rx_buffer[i]);
         Serial_SendString(sss);
     }
 }
