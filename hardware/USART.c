@@ -15,7 +15,7 @@
 
 uint8_t rx_buffer[BUFFER_SIZE];
 uint8_t tx_buffer[BUFFER_SIZE+3];
-
+static uint8_t count = 0;
 
 volatile uint16_t write_rx_buffer = 0;
 volatile uint8_t rx_complete_flag = 0;
@@ -156,12 +156,16 @@ void USART1_IRQHandler(void){
     }
 
     if(USART_GetITStatus(USART1,USART_IT_IDLE) == SET){
-        
+        count++;
         USART_ReceiveData(USART1);
         USART_ClearITPendingBit(USART1,USART_IT_IDLE);
+        if(count >= 10){
+            USART2_send_DMA();
+            count = 0;
+            rx_complete_flag = 1;
+        }
         
-        USART2_send_DMA();
-        rx_complete_flag = 1;
+        
         write_rx_buffer = 0;
     }
 }
